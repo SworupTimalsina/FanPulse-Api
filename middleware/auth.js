@@ -1,9 +1,8 @@
-//PROTECT THE MIDDLEWARE
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("./async");
 const User = require("../models/User");
 
-//Protect routes
+// Protect routes
 exports.protect = asyncHandler(async (req, res, next) => {
   let token;
 
@@ -15,40 +14,45 @@ exports.protect = asyncHandler(async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
 
-  //Make sure token exist
+  // Make sure token exists
   if (!token) {
-    // return next(new ErrorResponse('Not authorized to access this route', 401));
-    return res
-      .status(401)
-      .json({ message: "Not authorized to access this route" });
+    return res.status(401).json({ message: "Not authorized to access this route" });
   }
 
   try {
-    //Verify token
+    // Verify token
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is missing in environment variables.");
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log(decoded);
-    req.user = await User.findById(decoded.id);
+
+    // Fetch user from database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: "User no longer exists." });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
-    // return next(new ErrorResponse('Not authorized to access this route', 401));
-    return res
-      .status(401)
-      .json({ message: "Not authorized to access this route" });
+    return res.status(401).json({ message: "Not authorized to access this route" });
   }
 });
 
-// Grant access to specific roles , i.e publisher and admin
-
+// Grant access to specific roles (e.g., admin, publisher)
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    ///check if it is admin or publisher. user cannot access
-    //  console.log(req.user.role);
+    if (!req.user || !req.user.role) {
+      return res.status(403).json({ message: "User role is not defined." });
+    }
+
     if (!roles.includes(req.user.role)) {
-      // return next(new ErrorResponse(`User role ${req.user.roles} is not authorized to access this route`, 403));
       return res.status(403).json({
-        message: `User role ${req.user.roles} is not authorized to access this route`,
+        message: `User role "${req.user.role}" is not authorized to access this route.`,
       });
     }
+
     next();
   };
 };

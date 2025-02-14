@@ -1,6 +1,8 @@
-// Try catch block will be handeled with this file
-
-const asyncHandler = fn => (req,res,next)=>
-    Promise.resolve(fn(req,res,next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch((err) => {
+        console.error("Async Error:", err.message); // Logs error for debugging
+        next(err);
+    });
+};
 
 module.exports = asyncHandler;
