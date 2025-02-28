@@ -1,69 +1,120 @@
-const asyncHandler = require("../middleware/async");
 const Article = require("../models/Article");
+const asyncHandler = require("../middleware/async");
 
-// @desc    Create new article
+// @desc    Create a new article
 // @route   POST /api/v1/articles
-// @access  Private
-exports.createArticle = asyncHandler(async (req, res, next) => {
-    req.body.author = req.user.id;
-    const article = await Article.create(req.body);
-    res.status(201).json({ success: true, data: article });
+// @access  Public (No authentication middleware)
+
+exports.addArticle = asyncHandler(async (req, res, next) => {
+    console.log(req.body); // Debugging
+
+    const { title, content, image, author } = req.body;
+
+    if (!title || !content || !author) {
+        return res.status(400).json({ message: "Title, content, and author are required" });
+    }
+
+    // Create article
+    await Article.create({
+        title,
+        content,
+        image: image || null, // Image is optional
+        author,
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Article created successfully",
+    });
 });
 
-// @desc    Get all articles
+// ✅ GET ALL ARTICLES
 // @route   GET /api/v1/articles
 // @access  Public
-exports.getArticles = asyncHandler(async (req, res, next) => {
-    const articles = await Article.find().populate("author", "name email");
-    res.status(200).json({ success: true, data: articles });
+exports.getArticles = asyncHandler(async (req, res) => {
+    const articles = await Article.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+        success: true,
+        count: articles.length,
+        data: articles,
+    });
 });
 
-// @desc    Get single article
+// ✅ GET SINGLE ARTICLE BY ID
 // @route   GET /api/v1/articles/:id
 // @access  Public
-exports.getArticle = asyncHandler(async (req, res, next) => {
-    const article = await Article.findById(req.params.id).populate("author", "name email");
-
-    if (!article) {
-        return res.status(404).json({ message: "Article not found" });
-    }
-
-    res.status(200).json({ success: true, data: article });
-});
-
-// @desc    Update article
-// @route   PUT /api/v1/articles/:id
-// @access  Private
-exports.updateArticle = asyncHandler(async (req, res, next) => {
-    let article = await Article.findById(req.params.id);
-
-    if (!article) {
-        return res.status(404).json({ message: "Article not found" });
-    }
-
-    if (article.author.toString() !== req.user.id) {
-        return res.status(401).json({ message: "Not authorized" });
-    }
-
-    article = await Article.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-
-    res.status(200).json({ success: true, data: article });
-});
-
-// @desc    Delete article
-// @route   DELETE /api/v1/articles/:id
-// @access  Private
-exports.deleteArticle = asyncHandler(async (req, res, next) => {
+exports.getArticleById = asyncHandler(async (req, res) => {
     const article = await Article.findById(req.params.id);
 
     if (!article) {
         return res.status(404).json({ message: "Article not found" });
     }
 
-    if (article.author.toString() !== req.user.id) {
-        return res.status(401).json({ message: "Not authorized" });
+    res.status(200).json({
+        success: true,
+        data: article,
+    });
+});
+
+// ✅ UPDATE ARTICLE
+// @route   PUT /api/v1/articles/:id
+// @access  Public
+exports.updateArticle = asyncHandler(async (req, res) => {
+    let article = await Article.findById(req.params.id);
+
+    if (!article) {
+        return res.status(404).json({ message: "Article not found" });
     }
 
-    await article.remove();
-    res.status(200).json({ success: true, message: "Article deleted" });
+    const { title, content, image } = req.body;
+
+    article.title = title || article.title;
+    article.content = content || article.content;
+    article.image = image !== undefined ? image : article.image;
+
+    await article.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Article updated successfully",
+        data: article,
+    });
+});
+
+// ✅ DELETE ARTICLE
+// @route   DELETE /api/v1/articles/:id
+// @access  Public
+exports.deleteArticle = asyncHandler(async (req, res) => {
+    const article = await Article.findById(req.params.id);
+
+    if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+    }
+
+    await article.deleteOne();
+
+    res.status(200).json({
+        success: true,
+        message: "Article deleted successfully",
+    });
+});
+
+// ✅ GET ALL ARTICLES BY A SPECIFIC USER
+// @route   GET /api/v1/articles/user/:userId
+// @access  Public
+exports.getUserArticles = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const articles = await Article.find({ author: userId }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+        success: true,
+        count: articles.length,
+        data: articles || [], // ✅ Ensure an array is returned
+    });
 });

@@ -41,7 +41,9 @@ exports.login = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email }).select("+password");
 
   if (!user || !(await user.matchPassword(password))) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({
+      message: "Invalid credentials"
+    });
   }
 
   sendTokenResponse(user, 200, res);
@@ -74,24 +76,34 @@ const sendTokenResponse = (user, statusCode, res) => {
   const token = user.getSignedJwtToken();
 
   const options = {
-    //Cookie will expire in 30 days
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
   };
 
-  // Cookie security is false .if you want https then use this code. do not use in development time
   if (process.env.NODE_ENV === "proc") {
     options.secure = true;
   }
-  //we have created a cookie with a token
 
   res
     .status(statusCode)
-    .cookie("token", token, options) // key , value ,options
+    .cookie("token", token, options)
     .json({
       success: true,
       token,
+      userId: user._id, // ✅ Now returning the user ID
     });
 };
+
+// @desc    Get all users
+// @route   GET /api/v1/auth/users
+// @access  Private
+exports.getAllUsers = asyncHandler(async (req, res, next) => {
+  const users = await User.find().select("-password"); // Exclude passwords for security
+
+  res.status(200).json({
+    success: true,
+    users,
+  });
+});

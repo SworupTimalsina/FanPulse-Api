@@ -1,16 +1,11 @@
 const express = require("express");
+const { sendMessage, getMessages } = require("../controllers/messageController");
+const { protect } = require("../middleware/auth"); // Ensure user is logged in
+
 const router = express.Router();
-const { protect } = require("../middleware/auth");
 
-const {
-    sendMessage,
-    getMessages,
-} = require("../controllers/messageController");
+router.post("/send", sendMessage); // ✅ Send message
+router.get("/:userId", getMessages);
 
-const MessageValidation = require("../validations/messageValidation");
-
-router.route("/")
-    .post(protect, MessageValidation, sendMessage) // Apply validation here
-    .get(protect, getMessages);
 
 module.exports = router;

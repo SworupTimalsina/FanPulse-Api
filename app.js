@@ -25,6 +25,8 @@ connectDB();
 
 // Route files
 const auth = require("./routes/user");
+const article = require("./routes/article");
+const message = require("./routes/message")
 
 
 // Body parser
@@ -54,9 +56,11 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Mount routers
 app.use("/api/v1/auth", auth);
+app.use("/api/v1/article", article);
+app.use("/api/v1/message", message);
 
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 const server = app.listen(
   PORT,

@@ -1,24 +1,30 @@
 const express = require("express");
-const router = express.Router();
-const { protect } = require("../middleware/auth");
-
 const {
-    createArticle,
+    addArticle,
     getArticles,
-    getArticle,
+    getArticleById,
     updateArticle,
     deleteArticle,
+    getUserArticles
 } = require("../controllers/articleController");
 
-const ArticleValidation = require("../validations/articleValidation");
+const router = express.Router();
 
-router.route("/")
-    .post(protect, ArticleValidation, createArticle) // Apply validation here
-    .get(getArticles);
+// ✅ CREATE ARTICLE (POST)
+router.post("/add", addArticle);
 
-router.route("/:id")
-    .get(getArticle)
-    .put(protect, ArticleValidation, updateArticle) // Apply validation here
-    .delete(protect, deleteArticle);
+// ✅ GET ALL ARTICLES (GET)
+router.get("/", getArticles);
+
+// ✅ GET SINGLE ARTICLE BY ID (GET)
+router.get("/:id", getArticleById);
+
+// ✅ UPDATE ARTICLE (PUT)
+router.put("/:id", updateArticle);
+
+// ✅ DELETE ARTICLE (DELETE)
+router.delete("/:id", deleteArticle);
+
+router.get("/user/:userId", getUserArticles); 
 
 module.exports = router;
